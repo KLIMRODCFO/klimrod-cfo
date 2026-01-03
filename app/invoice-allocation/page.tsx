@@ -141,6 +141,13 @@ export default function InvoiceAllocationPage() {
   }
 
   // Handle form changes - MANUAL EDITING
+    // Adaptador para MinimalDatePicker
+    const handleDatePickerChange = (e: { target: { value: string; name: string } }) => {
+      setForm(prev => ({
+        ...prev,
+        [e.target.name]: e.target.value
+      }))
+    }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setForm(prev => ({
@@ -390,7 +397,7 @@ export default function InvoiceAllocationPage() {
                       value={form.date}
                       name="date"
                       required
-                      onChange={handleChange}
+                      onChange={handleDatePickerChange}
                     />
                   </div>
 
@@ -399,7 +406,7 @@ export default function InvoiceAllocationPage() {
                     <MinimalDatePicker
                       value={form.due_date}
                       name="due_date"
-                      onChange={handleChange}
+                      onChange={handleDatePickerChange}
                     />
                   </div>
 
