@@ -167,7 +167,11 @@ function EventDetailsContent() {
               onAddRow={addRow}
               onDeleteRow={deleteRow}
               totals={totals}
-              employees={[]}
+              employees={sales.map((row, idx) => ({
+                id: String(idx),
+                name: row.employee,
+                position: row.position
+              }))}
             />
             <div className="mt-8 flex gap-4">
               <button
