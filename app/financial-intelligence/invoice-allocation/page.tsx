@@ -34,11 +34,6 @@ interface InvoiceItem {
 }
 
 export default function InvoiceAllocationPage() {
-  // Export to Excel handler
-  // Exportar toda la información de la página a Excel de forma clara y ordenada
-  const handleExportExcel = () => {
-    exportInvoiceToExcel(form, items);
-  };
   // Inject style to hide number input arrows
   if (typeof window !== 'undefined' && !document.getElementById('no-arrows-style')) {
     const style = document.createElement('style');
@@ -139,14 +134,7 @@ export default function InvoiceAllocationPage() {
             )}
           </div>
           <div className="flex flex-col items-end justify-end">
-            <button
-              className="bg-black text-white rounded px-6 py-3 font-semibold text-base shadow hover:bg-gray-800 transition-all"
-              style={{ minWidth: 'auto' }}
-              onClick={handleExportExcel}
-              type="button"
-            >
-              EXPORT TO EXCEL
-            </button>
+            {/* Botón de exportación eliminado temporalmente */}
           </div>
         </div>
       </div>

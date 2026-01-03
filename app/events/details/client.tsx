@@ -80,12 +80,6 @@ function EventDetailsContent() {
     }
   }
 
-  const handleExport = () => {
-    if (event) {
-      const totals = calculateTotals(sales)
-      exportToExcel(event, sales, totals, [])
-    }
-  }
 
   const totals = calculateTotals(sales)
 
@@ -183,12 +177,7 @@ function EventDetailsContent() {
               >
                 {loading ? 'Saving...' : 'Save Report'}
               </button>
-              <button
-                onClick={handleExport}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition"
-              >
-                📥 Export to Excel
-              </button>
+              {/* Botón de exportación eliminado temporalmente */}
             </div>
           </>
         ) : (
