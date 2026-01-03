@@ -831,6 +831,7 @@ export const getTucciEmployeesForSales = () => {
     .map(emp => ({
       id: emp.id,
       name: emp.name,
+      email: emp.email || '',
       position: emp.position
     }))
     .sort((a, b) => a.name.localeCompare(b.name))
