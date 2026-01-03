@@ -83,7 +83,7 @@ function EventDetailsContent() {
   const handleExport = () => {
     if (event) {
       const totals = calculateTotals(sales)
-      exportToExcel(event, sales, totals)
+      exportToExcel(event, sales, totals, [])
     }
   }
 
