@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Event, SalesRow } from '@/app/lib/types'
 import SalesTable from '@/app/components/SalesTable'
-import { calculateTotals, exportToExcel } from '@/app/lib/excel'
+import { calculateTotals } from '@/app/lib/excel'
 
 export default function SalesReportContent() {
   const searchParams = useSearchParams()
@@ -89,12 +89,6 @@ export default function SalesReportContent() {
     }
   }
 
-  const handleExport = () => {
-    if (event) {
-      const totals = calculateTotals(sales)
-      exportToExcel(event, sales, totals)
-    }
-  }
 
   const totals = calculateTotals(sales)
 
@@ -159,6 +153,7 @@ export default function SalesReportContent() {
             onAddRow={addRow}
             onDeleteRow={deleteRow}
             totals={totals}
+            employees={[]}
           />
         </div>
 

@@ -8,7 +8,7 @@ import ExpenseTable from '@/app/components/ExpenseTable'
 import TipReport from '@/app/components/TipReport'
 import OtherFeeTable from '@/app/components/OtherFeeTable'
 import { getTucciEmployeesForSales } from '@/app/lib/tucciBrigade'
-import { exportToExcel, exportEmployeeTipReport } from '@/app/lib/excel'
+import { exportEmployeeTipReport } from '@/app/lib/excel'
 import { generateTipReport } from '@/app/lib/tips'
 import { restaurants } from '@/app/lib/restaurants'
 import { supabase } from '@/app/lib/supabase'
@@ -239,10 +239,6 @@ export default function SalesReportPage() {
     saveSalesData(updated)
   }
 
-  const handleExportToExcel = () => {
-    const tipReport = generateTipReport(salesData, distributionMethod)
-    exportToExcel(eventInfo, salesData, totals, tipReport.distribution)
-  }
 
   const handleExportEmployeeReport = () => {
     const tipReport = generateTipReport(salesData, distributionMethod)
