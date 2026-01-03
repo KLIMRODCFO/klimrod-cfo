@@ -83,6 +83,8 @@ export default function InvoiceAllocationPage() {
       bill_number: (data.delivery_number || form.bill_number).toUpperCase(),
       terms: (data.payment_terms || form.terms).toUpperCase(),
       memo: (data.description || form.memo).toUpperCase(),
+      tax: form.tax,
+      shipping: form.shipping,
       category: form.category
     })
     
