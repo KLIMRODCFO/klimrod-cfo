@@ -333,11 +333,11 @@ export default function InvoiceAllocationPage() {
                 onClick={() => {
                   setItems([{
                     id: `item-${Date.now()}`,
-                    product_name: '',
-                    cases: undefined,
-                    bottles: undefined,
-                    unit_price: 0,
-                    total_price: 0
+                    product_service: '',
+                    quantity: 0,
+                    rate: 0,
+                    amount: 0,
+                    category: '',
                   }])
                 }}
                 className="border-2 border-gray-300 rounded-lg p-8 hover:border-black hover:bg-gray-900 hover:text-white hover:shadow-lg transition-all text-center group"
