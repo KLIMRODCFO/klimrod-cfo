@@ -1,9 +1,3 @@
-// Solución para error de TypeScript: Property 'XLSX' does not exist on type 'Window & typeof globalThis'.
-declare global {
-  interface Window {
-    XLSX?: any;
-  }
-}
 
 'use client';
 
