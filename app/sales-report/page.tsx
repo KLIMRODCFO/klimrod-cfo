@@ -1,3 +1,9 @@
+// Solución para error de TypeScript: Property 'XLSX' does not exist on type 'Window & typeof globalThis'.
+declare global {
+  interface Window {
+    XLSX?: any;
+  }
+}
 
 'use client';
 
@@ -693,6 +699,7 @@ export default function SalesReportPage() {
                       let XLSX = window.XLSX;
                       if (!XLSX) {
                         XLSX = await import('xlsx');
+                        window.XLSX = XLSX;
                       }
                       // Calcular la distribución real de propinas (gratuity distribution)
                       const { generateTipReport } = await import('@/app/lib/tips');
