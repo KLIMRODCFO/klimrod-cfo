@@ -1,6 +1,8 @@
 
 'use client';
 
+
+
 import { useState, useEffect } from 'react'
 import AuthenticatedLayout from '@/app/components/AuthenticatedLayout'
 import { SalesRow, SalesTotals, ExpenseRow, ExpenseTotals } from '@/app/lib/types'
@@ -77,7 +79,7 @@ export default function SalesReportPage() {
           if (emp && emp.position) {
             updated.position = emp.position;
           }
-      }
+        }
         return updated;
       }));
     };
@@ -506,18 +508,18 @@ export default function SalesReportPage() {
             <h2 className="text-xl font-bold text-black mb-4">
               GENERAL INFORMATION
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-6">
               {/* Event Information Table */}
               <table className="w-full text-sm border-2 border-gray-800 rounded overflow-hidden">
                 <tbody>
-                  <tr style={{borderBottom:'1px solid #232b38'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-r" style={{background:'#151c26', borderRight:'1px solid #232b38'}}>RESTAURANT</td>
+                  <tr className="border-b border-gray-800">
+                    <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">RESTAURANT</td>
                     <td className="px-4 py-2 text-gray-900 bg-white font-bold text-center">
                       {activeRestaurant || 'NO RESTAURANT SELECTED'}
                     </td>
                   </tr>
-                  <tr style={{borderBottom:'1px solid #232b38'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-r" style={{background:'#151c26', borderRight:'1px solid #232b38'}}>DATE</td>
+                  <tr className="border-b border-gray-800">
+                    <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">DATE</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
                       <input
                         type="date"
@@ -529,8 +531,8 @@ export default function SalesReportPage() {
                       />
                     </td>
                   </tr>
-                  <tr style={{borderBottom:'1px solid #232b38'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-r" style={{background:'#151c26', borderRight:'1px solid #232b38'}}>DAY</td>
+                  <tr className="border-b border-gray-800">
+                    <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">DAY</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
                       <select
                         name="day"
@@ -549,8 +551,8 @@ export default function SalesReportPage() {
                       </select>
                     </td>
                   </tr>
-                  <tr style={{borderBottom:'1px solid #232b38'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-r" style={{background:'#151c26', borderRight:'1px solid #232b38'}}>EVENT</td>
+                  <tr className="border-b border-gray-800">
+                    <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">EVENT</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
                       <select
                         name="eventName"
@@ -565,8 +567,8 @@ export default function SalesReportPage() {
                       </select>
                     </td>
                   </tr>
-                  <tr style={{borderBottom:'1px solid #232b38'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-r" style={{background:'#151c26', borderRight:'1px solid #232b38'}}>SHIFT</td>
+                  <tr className="border-b border-gray-800">
+                    <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">SHIFT</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
                       <select
                         name="shift"
@@ -582,8 +584,8 @@ export default function SalesReportPage() {
                       </select>
                     </td>
                   </tr>
-                  <tr style={{borderBottom:'1px solid #232b38'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-r" style={{background:'#151c26', borderRight:'1px solid #232b38'}}>MANAGER</td>
+                  <tr>
+                    <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">MANAGER</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
                       <select
                         name="manager"
@@ -599,8 +601,8 @@ export default function SalesReportPage() {
                       </select>
                     </td>
                   </tr>
-                  <tr style={{borderBottom:'1px solid #232b38'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-r" style={{background:'#151c26', borderRight:'1px solid #232b38'}}>OTHER FEE</td>
+                  <tr>
+                    <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">OTHER FEE</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
                       <input
                         type="number"
@@ -615,50 +617,46 @@ export default function SalesReportPage() {
                   </tr>
                 </tbody>
               </table>
-              {/* Totals Table (Right Side) - estilo exacto */}
-              <table className="w-full text-sm border-separate border-spacing-0 rounded overflow-hidden" style={{background:'#151c26'}}>
+            {/* Tabla de totales visualmente igual a la imagen */}
+            <div className="mt-6">
+              <table className="w-full text-sm" style={{background:'#101726', borderCollapse:'collapse'}}>
                 <tbody>
-                  <tr style={{background:'#151c26'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-b border-gray-700" style={{background:'#151c26'}}>NET SALES</td>
-                    <td className="px-4 py-2 text-right border-b border-gray-700 bg-white text-black">${totals.totalNetSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>NET SALES</td>
+                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalNetSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                   </tr>
-                  <tr style={{background:'#151c26'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-b border-gray-700" style={{background:'#151c26'}}>CASH SALES</td>
-                    <td className="px-4 py-2 text-right border-b border-gray-700 bg-white text-black">${totals.totalCashSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH SALES</td>
+                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCashSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                   </tr>
-                  <tr style={{background:'#151c26'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-b border-gray-700" style={{background:'#151c26'}}>CASH EXPENSES</td>
-                    <td className="px-4 py-2 text-right border-b border-gray-700 bg-white text-black">${expenseTotals.totalCash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH EXPENSES</td>
+                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${expenseTotals.totalCash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                   </tr>
-                  <tr style={{background:'#d1d5db'}}>
-                    <td className="px-4 py-2 font-semibold text-black border-b border-gray-300" style={{background:'#d1d5db'}}>HOUSE CASH</td>
-                    <td className="px-4 py-2 text-right border-b border-gray-300 text-black" style={{background:'#d1d5db'}}>${(totals.totalCashSales - expenseTotals.totalCash).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <tr style={{background:'#525c6a', borderBottom:'1px solid #232b38'}}>
+                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#525c6a'}}>HOUSE CASH</td>
+                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${(totals.totalCashSales - expenseTotals.totalCash).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                   </tr>
-                  <tr>
-                    <td colSpan={2} className="p-0"><div style={{borderTop:'1px solid #d1d5db', width:'100%'}}></div></td>
+                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CC SALES</td>
+                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCcSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                   </tr>
-                  <tr style={{background:'#151c26'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-b border-gray-700" style={{background:'#151c26'}}>CC SALES</td>
-                    <td className="px-4 py-2 text-right border-b border-gray-700 bg-white text-black">${totals.totalCcSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CC GRATUITY</td>
+                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCcGratuity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                   </tr>
-                  <tr style={{background:'#151c26'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-b border-gray-700" style={{background:'#151c26'}}>CC GRATUITY</td>
-                    <td className="px-4 py-2 text-right border-b border-gray-700 bg-white text-black">${totals.totalCcGratuity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH GRATUITY</td>
+                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCashGratuity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                   </tr>
-                  <tr style={{background:'#151c26'}}>
-                    <td className="px-4 py-2 font-semibold text-white border-b border-gray-700" style={{background:'#151c26'}}>CASH GRATUITY</td>
-                    <td className="px-4 py-2 text-right border-b border-gray-700 bg-white text-black">${totals.totalCashGratuity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  </tr>
-                  <tr style={{background:'#151c26'}}>
-                    <td className="px-4 py-2 font-semibold text-white" style={{background:'#151c26'}}>TOTAL POINTS</td>
-                    <td className="px-4 py-2 text-right bg-white text-black">{totals.totalPoints}</td>
+                  <tr style={{background:'#101726'}}>
+                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>TOTAL POINTS</td>
+                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>{totals.totalPoints}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            </div>
           </div>
-
           <div className="bg-white rounded p-6">
             <h2 className="text-xl font-bold text-black mb-4">
               SALES AND GRATUITY DETAILS
@@ -923,6 +921,8 @@ export default function SalesReportPage() {
                   </div>
                 </div>
               )}
+            </div> {/* End w-full */}
+          </div>
           </AuthenticatedLayout>
-    );
+        );
 }
