@@ -41,6 +41,7 @@ export function calculateTipDistribution(
       tips: Math.round(tips * 100) / 100,
       ccGratuity: Math.round(ccTips * 100) / 100,
       cashGratuity: Math.round(cashTips * 100) / 100,
+      points: row.points || 0
     }
   })
 }

@@ -122,9 +122,9 @@ export default function Sidebar() {
                 TIME & ATTENDANCE
               </Link>
               <Link
-                href="/hr/gratuity"
+                href="/hr/gratuity-report"
                 className={`block px-6 py-2 border-b border-gray-700 font-semibold text-xs transition ${
-                  pathname === '/hr/gratuity'
+                  pathname === '/hr/gratuity-report'
                     ? 'bg-gray-700 text-white'
                     : 'text-gray-200 hover:bg-gray-700'
                 }`}
@@ -195,14 +195,14 @@ export default function Sidebar() {
                 CLOSED EVENTS
               </Link>
               <Link
-                href="/period-sales-report"
+                href="/pos-reconciliation"
                 className={`block px-6 py-2 font-semibold text-xs transition ${
-                  pathname === '/period-sales-report'
+                  pathname === '/pos-reconciliation'
                     ? 'bg-gray-700 text-white'
                     : 'text-gray-200 hover:bg-gray-700'
                 }`}
               >
-                PERIOD SALES REPORT
+                POS RECONCILIATION
               </Link>
             </div>
           )}

@@ -93,10 +93,36 @@ export default function UsersPage() {
     })
   }
 
+  // Get active restaurant name (same logic as other pages)
+  const [activeRestaurant, setActiveRestaurant] = useState<string>("");
+  useEffect(() => {
+    const stored = localStorage.getItem('active_restaurant_id');
+    if (stored) {
+      const restaurant = restaurants.find(r => r.id === stored);
+      if (restaurant) setActiveRestaurant(restaurant.name);
+    }
+    window.addEventListener('restaurant-changed', () => {
+      const stored = localStorage.getItem('active_restaurant_id');
+      if (stored) {
+        const restaurant = restaurants.find(r => r.id === stored);
+        if (restaurant) setActiveRestaurant(restaurant.name);
+      }
+    });
+    return () => {
+      window.removeEventListener('restaurant-changed', () => {});
+    };
+  }, []);
   return (
     <AuthenticatedLayout>
       <div className="max-w-6xl">
-        <h1 className="text-3xl font-bold text-black mb-6">USERS</h1>
+        <div className="pt-6 pb-2">
+          <h1 className="text-3xl font-bold text-black">USERS</h1>
+          {activeRestaurant && (
+            <div className="mt-1">
+              <span className="text-lg font-semibold text-gray-600">{activeRestaurant}</span>
+            </div>
+          )}
+        </div>
         <p className="text-gray-700 mb-6">Control centralizado de accesos por restaurante y rol. Solo un admin puede ver y gestionar esta sección.</p>
 
         <div className="bg-white border-2 border-black rounded p-5 mb-6">

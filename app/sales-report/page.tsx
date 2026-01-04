@@ -1,9 +1,7 @@
 
-'use client';
+"use client";
 
-
-
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AuthenticatedLayout from '@/app/components/AuthenticatedLayout'
 import { SalesRow, SalesTotals, ExpenseRow, ExpenseTotals } from '@/app/lib/types'
 import SalesTable from '@/app/components/SalesTable'
@@ -31,7 +29,17 @@ const EVENT_OPTIONS = [
 ]
 
 export default function SalesReportPage() {
-  // ...existing code...
+  // Seguridad KLIMROD CFO
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [securityPassword, setSecurityPassword] = useState('');
+  const securityInputRef = useRef<HTMLInputElement>(null);
+
+  // Enfocar input oculto al abrir modal
+  useEffect(() => {
+    if (showSecurityModal && securityInputRef.current) {
+      securityInputRef.current.focus();
+    }
+  }, [showSecurityModal]);
   const [salesData, setSalesData] = useState<SalesRow[]>([])
   const [expenseData, setExpenseData] = useState<ExpenseRow[]>([])
   const [otherFeeData, setOtherFeeData] = useState<Array<{employee: string, position: string}>>([])
@@ -91,8 +99,8 @@ export default function SalesReportPage() {
     const handleRemovePerformanceRow = (idx: number) => {
       setPerformanceRows(prev => prev.filter((_, i) => i !== idx));
     };
-  const [showSecurityModal, setShowSecurityModal] = useState(false)
-  const [securityPassword, setSecurityPassword] = useState('')
+  // Security modal removed
+    // Security modal removed
   const [activeRestaurant, setActiveRestaurant] = useState<string>('')
   const [eventInfo, setEventInfo] = useState({
     date: '',
@@ -192,18 +200,7 @@ export default function SalesReportPage() {
       }))
       setSalesData(cleanedData)
     } else {
-      setSalesData([
-        {
-          employee: '',
-          position: '',
-          netSales: 0,
-          cashSales: 0,
-          ccSales: 0,
-          ccGratuity: 0,
-          cashGratuity: 0,
-          points: 0,
-        },
-      ])
+      setSalesData([])
     }
   }, [])
 
@@ -292,14 +289,37 @@ export default function SalesReportPage() {
     const updated = salesData.filter((_, i) => i !== index)
     saveSalesData(updated)
   }
+  // Helper to get weekday from date string (YYYY-MM-DD)
+  const getWeekdayFromDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return days[d.getDay()];
+  };
+
+  // Track if user has manually changed the day
+  const [dayManuallySet, setDayManuallySet] = useState(false);
+
   const handleEventChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     if (name === 'otherFee') {
-      setEventInfo(prev => ({ ...prev, [name]: parseFloat(value) || 0 }))
+      setEventInfo(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    } else if (name === 'date') {
+      // When date changes, auto-set day unless user has manually set it
+      const weekday = getWeekdayFromDate(value);
+      setEventInfo(prev => ({
+        ...prev,
+        date: value,
+        day: (!dayManuallySet && weekday) ? weekday : prev.day
+      }));
+    } else if (name === 'day') {
+      setDayManuallySet(true);
+      setEventInfo(prev => ({ ...prev, day: value.toUpperCase?.() ?? value }));
     } else {
-      setEventInfo(prev => ({ ...prev, [name]: value.toUpperCase?.() ?? value }))
+      setEventInfo(prev => ({ ...prev, [name]: value.toUpperCase?.() ?? value }));
     }
-  }
+  };
 
   const handleCellChange = (
     index: number,
@@ -331,25 +351,23 @@ export default function SalesReportPage() {
 
   const handleSubmitClick = () => {
     if (!eventInfo.date || !eventInfo.eventName) {
-      alert('Please fill in Date and Event Name before submitting')
-      return
+      alert('Please fill in Date and Event Name before submitting');
+      return;
     }
-    setShowSecurityModal(true)
-    setSecurityPassword('')
-  }
+    setShowSecurityModal(true);
+    setSecurityPassword('');
+  };
 
   const handleSecuritySubmit = async () => {
     if (securityPassword !== '12345') {
-      alert('Incorrect password. Access denied.')
-      setSecurityPassword('')
-      return
+      alert('Incorrect password. Access denied.');
+      setSecurityPassword('');
+      return;
     }
-
-    setShowSecurityModal(false)
-    setSecurityPassword('')
-
+    setShowSecurityModal(false);
+    setSecurityPassword('');
     try {
-      // Guardar evento en localStorage (puedes mantener la lógica de Supabase si la necesitas)
+      // Guardar evento en localStorage y en Supabase
       const activeRestaurantId = localStorage.getItem('active_restaurant_id') || 'default';
       const tipReport = generateTipReport(salesData, distributionMethod);
       const reportId = `${eventInfo.date}_${eventInfo.eventName.replace(/\s/g, '_')}_${Date.now()}`;
@@ -367,28 +385,107 @@ export default function SalesReportPage() {
         tipDistribution: tipReport.distribution,
         distributionMethod: distributionMethod
       };
+      // Guardar en localStorage (histórico local)
       const existingEvents = localStorage.getItem('closed_events');
       const events = existingEvents ? JSON.parse(existingEvents) : [];
       events.push(closedEvent);
       localStorage.setItem('closed_events', JSON.stringify(events));
 
-      alert(`Event "${eventInfo.eventName}" has been closed and saved successfully!`);
+      // Guardar en Supabase
+      const { error: supabaseError } = await supabase.from('master_closed_events').insert([
+        {
+          report_id: reportId,
+          closed_at: new Date().toISOString(),
+          closed_by: 'APP_USER', // Puedes reemplazar por usuario real si tienes auth
+          restaurant_id: activeRestaurantId,
+          restaurant_name: activeRestaurant,
+          event_date: eventInfo.date,
+          event_day: eventInfo.day,
+          event_name: eventInfo.eventName,
+          shift: eventInfo.shift,
+          manager: eventInfo.manager,
+          event_notes: eventInfo.notes || '',
+          total_net_sales: totals.totalNetSales,
+          total_cash_sales: totals.totalCashSales,
+          total_cc_sales: totals.totalCcSales,
+          total_cc_gratuity: totals.totalCcGratuity,
+          total_cash_gratuity: totals.totalCashGratuity,
+          total_points: totals.totalPoints,
+          total_gratuity: totals.totalGratuity,
+          total_expenses: expenseTotals.totalExpenses,
+          total_check: expenseTotals.totalCheck,
+          total_cash: expenseTotals.totalCash,
+          total_business: expenseTotals.totalBusiness,
+          total_employee: expenseTotals.totalEmployee,
+          total_refunded: expenseTotals.totalRefunded,
+          other_fee: eventInfo.otherFee,
+          distribution_method: distributionMethod,
+          event_info: eventInfo,
+          sales_data: salesData,
+          expense_data: expenseData,
+          other_fee_data: otherFeeData,
+          tip_distribution: tipReport.distribution,
+          performance_report: performanceRows,
+          event_summary: eventSummary,
+          status: 'CLOSED',
+          version: 1
+        }
+      ]);
+      if (supabaseError) {
+        alert('Error saving event to Supabase: ' + supabaseError.message);
+        console.error('❌ Supabase error:', supabaseError);
+        return;
+      }
 
       // Limpiar datos para nuevo reporte
       localStorage.removeItem('sales_default');
       localStorage.removeItem('expense_default');
       localStorage.removeItem('other_fee_data');
       localStorage.removeItem('sales_event_info');
+
+      // Limpiar estados del formulario
+      setEventInfo({
+        date: '',
+        day: '',
+        eventName: '',
+        shift: '',
+        manager: '',
+        otherFee: 0,
+        notes: ''
+      });
+      setSalesData([
+        {
+          employee: '',
+          position: '',
+          netSales: 0,
+          cashSales: 0,
+          ccSales: 0,
+          ccGratuity: 0,
+          cashGratuity: 0,
+          points: 0,
+        },
+      ]);
+      setExpenseData([
+        {
+          expenseName: '',
+          amount: 0,
+          paymentMethod: '',
+          paidBy: '',
+          employeeName: '',
+          refunded: false,
+        },
+      ]);
+      setOtherFeeData([{ employee: '', position: '' }]);
+      setPerformanceRows([{ department: '', employee: '', position: '', report: '', note: false }]);
+      setEventSummary('');
+      setDayManuallySet(false);
     } catch (error) {
       console.error('❌ Unexpected error:', error);
       alert('Error saving event. Please check the console.');
     }
   }
 
-  const handleCancelSecurity = () => {
-    setShowSecurityModal(false)
-    setSecurityPassword('')
-  }
+  // Security modal removed
 
   // Expense functions
   const calculateExpenseTotals = () => {
@@ -492,54 +589,35 @@ export default function SalesReportPage() {
   return (
     <AuthenticatedLayout>
       <div id="sales-report-content" className="w-full">
-        <div className="flex justify-between items-center mb-2 px-6">
-          <div>
-            <h1 className="text-3xl font-bold text-black">SALES REPORT</h1>
-            {activeRestaurant && (
-              <p className="text-lg font-semibold text-gray-600 mt-1">{activeRestaurant}</p>
-            )}
-          </div>
-                                              </div>
-                                              {/* Removed Event Summary and Night Summary */}
+        <div className="px-2 pt-0 pb-2 text-left">
+          <h1 className="text-3xl font-bold text-black">NEW CLOSEOUT</h1>
+          {activeRestaurant && (
+            <div>
+              <span className="text-lg font-semibold text-gray-600">{activeRestaurant}</span>
+            </div>
+          )}
         </div>
-
         <div className="space-y-6">
           <div className="bg-white rounded p-6">
-            <h2 className="text-xl font-bold text-black mb-4">
-              GENERAL INFORMATION
-            </h2>
+            <h2 className="text-xl font-bold text-black mb-4">GENERAL INFORMATION</h2>
             <div className="grid grid-cols-2 gap-6">
               {/* Event Information Table */}
               <table className="w-full text-sm border-2 border-gray-800 rounded overflow-hidden">
                 <tbody>
                   <tr className="border-b border-gray-800">
                     <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">RESTAURANT</td>
-                    <td className="px-4 py-2 text-gray-900 bg-white font-bold text-center">
-                      {activeRestaurant || 'NO RESTAURANT SELECTED'}
-                    </td>
+                    <td className="px-4 py-2 text-gray-900 bg-white font-bold text-center">{activeRestaurant || 'NO RESTAURANT SELECTED'}</td>
                   </tr>
                   <tr className="border-b border-gray-800">
                     <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">DATE</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
-                      <input
-                        type="date"
-                        name="date"
-                        value={eventInfo.date}
-                        onChange={handleEventChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center"
-                        style={{ textAlign: 'center', textAlignLast: 'center', justifyContent: 'center', alignItems: 'center', display: 'flex' }}
-                      />
+                      <input type="date" name="date" value={eventInfo.date} onChange={handleEventChange} className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center" style={{ textAlign: 'center', textAlignLast: 'center', justifyContent: 'center', alignItems: 'center', display: 'flex' }} />
                     </td>
                   </tr>
                   <tr className="border-b border-gray-800">
                     <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">DAY</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
-                      <select
-                        name="day"
-                        value={eventInfo.day}
-                        onChange={handleEventChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center"
-                      >
+                      <select name="day" value={eventInfo.day} onChange={handleEventChange} className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center">
                         <option value="">SELECT DAY</option>
                         <option value="MONDAY">MONDAY</option>
                         <option value="TUESDAY">TUESDAY</option>
@@ -554,12 +632,7 @@ export default function SalesReportPage() {
                   <tr className="border-b border-gray-800">
                     <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">EVENT</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
-                      <select
-                        name="eventName"
-                        value={eventInfo.eventName}
-                        onChange={handleEventChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center"
-                      >
+                      <select name="eventName" value={eventInfo.eventName} onChange={handleEventChange} className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center">
                         <option value="">SELECT EVENT</option>
                         {EVENT_OPTIONS.map((opt) => (
                           <option key={opt} value={opt}>{opt}</option>
@@ -570,12 +643,7 @@ export default function SalesReportPage() {
                   <tr className="border-b border-gray-800">
                     <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">SHIFT</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
-                      <select
-                        name="shift"
-                        value={eventInfo.shift}
-                        onChange={handleEventChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center"
-                      >
+                      <select name="shift" value={eventInfo.shift} onChange={handleEventChange} className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center">
                         <option value="">SELECT SHIFT</option>
                         <option value="LUNCH">LUNCH</option>
                         <option value="BRUNCH">BRUNCH</option>
@@ -587,13 +655,7 @@ export default function SalesReportPage() {
                   <tr>
                     <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">MANAGER</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
-                      <select
-                        name="manager"
-                        value={eventInfo.manager}
-                        onChange={handleEventChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center"
-                        required
-                      >
+                      <select name="manager" value={eventInfo.manager} onChange={handleEventChange} className="w-full px-3 py-2 border border-gray-300 rounded uppercase text-center" required>
                         <option value="">SELECT MANAGER</option>
                         {managers.map((mgr) => (
                           <option key={mgr.id} value={mgr.name}>{mgr.name}</option>
@@ -604,158 +666,110 @@ export default function SalesReportPage() {
                   <tr>
                     <td className="px-4 py-2 font-semibold text-white bg-gray-900 border-r border-gray-800">OTHER FEE</td>
                     <td className="px-4 py-2 text-gray-900 bg-white text-center">
-                      <input
-                        type="number"
-                        name="otherFee"
-                        value={eventInfo.otherFee || ''}
-                        onChange={handleEventChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        placeholder="0.00"
-                        step="0.01"
-                      />
+                      <input type="number" name="otherFee" value={eventInfo.otherFee || ''} onChange={handleEventChange} className="w-full px-3 py-2 border border-gray-300 rounded text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" placeholder="0.00" step="0.01" />
                     </td>
                   </tr>
                 </tbody>
               </table>
-            {/* Tabla de totales visualmente igual a la imagen */}
-            <div className="mt-6">
-              <table className="w-full text-sm" style={{background:'#101726', borderCollapse:'collapse'}}>
-                <tbody>
-                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
-                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>NET SALES</td>
-                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalNetSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  </tr>
-                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
-                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH SALES</td>
-                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCashSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  </tr>
-                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
-                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH EXPENSES</td>
-                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${expenseTotals.totalCash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  </tr>
-                  <tr style={{background:'#525c6a', borderBottom:'1px solid #232b38'}}>
-                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#525c6a'}}>HOUSE CASH</td>
-                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${(totals.totalCashSales - expenseTotals.totalCash).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  </tr>
-                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
-                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CC SALES</td>
-                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCcSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  </tr>
-                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
-                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CC GRATUITY</td>
-                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCcGratuity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  </tr>
-                  <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
-                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH GRATUITY</td>
-                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCashGratuity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  </tr>
-                  <tr style={{background:'#101726'}}>
-                    <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>TOTAL POINTS</td>
-                    <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>{totals.totalPoints}</td>
-                  </tr>
-                </tbody>
-              </table>
+              {/* Tabla de totales */}
+              <div className="mt-6">
+                <table className="w-full text-sm" style={{background:'#101726', borderCollapse:'collapse'}}>
+                  <tbody>
+                    <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>NET SALES</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalNetSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    </tr>
+                    <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH SALES</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCashSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    </tr>
+                    <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH EXPENSES</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${expenseTotals.totalCash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    </tr>
+                    <tr style={{background:'#525c6a', borderBottom:'1px solid #232b38'}}>
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#525c6a'}}>HOUSE CASH</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${(totals.totalCashSales - expenseTotals.totalCash).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    </tr>
+                    <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CC SALES</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCcSales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    </tr>
+                    <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CC GRATUITY</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCcGratuity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    </tr>
+                    <tr style={{background:'#101726', borderBottom:'1px solid #232b38'}}>
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>CASH GRATUITY</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${totals.totalCashGratuity.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    </tr>
+                    <tr className="border-b border-gray-800">
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>OTHER FEE</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>${eventInfo.otherFee.toFixed(2)}</td>
+                    </tr>
+                    <tr style={{background:'#101726'}}>
+                      <td className="px-6 py-3 font-bold text-white text-left border-r border-[#232b38]" style={{background:'#101726'}}>TOTAL POINTS</td>
+                      <td className="px-6 py-3 font-bold text-black text-right" style={{background:'#fff'}}>{totals.totalPoints}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div className="bg-white rounded p-6">
-            <h2 className="text-xl font-bold text-black mb-4">
-              SALES AND GRATUITY DETAILS
-            </h2>
-            <SalesTable
-              sales={salesData}
-              onUpdate={handleCellChange}
-              onAddRow={handleAddRow}
-              onDeleteRow={handleRemoveRow}
-              totals={totals}
-              employees={fohEmployees}
-            />
+            <h2 className="text-xl font-bold text-black mb-4">SALES AND GRATUITY DETAILS</h2>
+            <SalesTable sales={salesData} onUpdate={handleCellChange} onAddRow={handleAddRow} onDeleteRow={handleRemoveRow} totals={totals} employees={fohEmployees} />
           </div>
-
-          {salesData.length > 0 && (
-            <div className="bg-white rounded p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-black">
-                  GRATUITY DISTRIBUTION
-                </h2>
-              </div>
-              <div className="mb-4">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center">
-                    <label className="text-sm font-semibold text-black mr-4">
-                      DISTRIBUTION METHOD
-                    </label>
-                  </div>
-                  <button
-                    className="ml-4 px-4 py-2 bg-black text-white rounded font-semibold text-sm shadow hover:bg-gray-900 transition-all"
-                    onClick={async () => {
-                      // Exportar Gratuity Distribution a Excel
-                      if (typeof window === 'undefined') return;
-                      let XLSX = window.XLSX;
-                      if (!XLSX) {
-                        XLSX = await import('xlsx');
-                        window.XLSX = XLSX;
-                      }
-                      // Calcular la distribución real de propinas (gratuity distribution)
-                      const { generateTipReport } = await import('@/app/lib/tips');
-                      const fohRows = salesData.filter(row => {
-                        const emp = employees.find(e => e.name === row.employee);
-                        return emp && emp.department && emp.department.toUpperCase() === 'FOH';
-                      });
-                      const report = generateTipReport(fohRows, distributionMethod);
-                      const data = report.distribution.map(row => ({
-                        Employee: row.employee,
-                        'Total Tips': row.tips,
-                        'CC Gratuity': row.ccGratuity,
-                        'Cash Gratuity': row.cashGratuity
-                      }));
-                      const ws = XLSX.utils.json_to_sheet(data);
-                      const wb = XLSX.utils.book_new();
-                      XLSX.utils.book_append_sheet(wb, ws, 'Gratuity Distribution');
-                      XLSX.writeFile(wb, 'gratuity-distribution.xlsx');
-                    }}
-                  >
-                    EXPORT GRATUITY DISTRIBUTION
-                  </button>
+          <div className="bg-white rounded p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-black">GRATUITY DISTRIBUTION</h2>
+            </div>
+            <div className="mb-4">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center">
+                  <label className="text-sm font-semibold text-black mr-4">DISTRIBUTION METHOD</label>
                 </div>
-              </div>
-              <div id="gratuity-distribution-section">
-                <TipReport sales={salesData.filter(row => {
-                  const emp = employees.find(e => e.name === row.employee);
-                  return emp && emp.department && emp.department.toUpperCase() === 'FOH';
-                })} distributionMethod={distributionMethod} />
+                <button className="ml-4 px-4 py-2 bg-black text-white rounded font-semibold text-sm shadow hover:bg-gray-900 transition-all" onClick={async () => {
+                  if (typeof window === 'undefined') return;
+                  let XLSX = window.XLSX;
+                  if (!XLSX) {
+                    XLSX = await import('xlsx');
+                    window.XLSX = XLSX;
+                  }
+                  const { generateTipReport } = await import('@/app/lib/tips');
+                  const fohRows = salesData.filter(row => {
+                    const emp = employees.find(e => e.name === row.employee);
+                    return emp && emp.department && emp.department.toUpperCase() === 'FOH';
+                  });
+                  const report = generateTipReport(fohRows, distributionMethod);
+                  const data = report.distribution.map(row => ({
+                    Employee: row.employee,
+                    'Total Tips': row.tips,
+                    'CC Gratuity': row.ccGratuity,
+                    'Cash Gratuity': row.cashGratuity
+                  }));
+                  const ws = XLSX.utils.json_to_sheet(data);
+                  const wb = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(wb, ws, 'Gratuity Distribution');
+                  XLSX.writeFile(wb, 'gratuity-distribution.xlsx');
+                }}>EXPORT GRATUITY DISTRIBUTION</button>
               </div>
             </div>
-          )}
-
-          <div className="bg-white rounded p-6">
-            <h2 className="text-xl font-bold text-black mb-4">
-              OTHER FEE DISTRIBUTION
-            </h2>
-            <OtherFeeTable
-              rows={otherFeeData}
-              onUpdate={handleOtherFeeChange}
-              onAddRow={handleAddOtherFee}
-              onDeleteRow={handleRemoveOtherFee}
-              totalFee={eventInfo.otherFee}
-              employees={employees}
-            />
+            <div id="gratuity-distribution-section">
+              <TipReport sales={salesData.filter(row => {
+                const emp = employees.find(e => e.name === row.employee);
+                return emp && emp.department && emp.department.toUpperCase() === 'FOH';
+              })} distributionMethod={distributionMethod} />
+            </div>
           </div>
-
           <div className="bg-white rounded p-6">
-            <h2 className="text-xl font-bold text-black mb-4">
-              EXPENSES
-            </h2>
-            <ExpenseTable
-              expenses={expenseData}
-              onUpdate={handleExpenseChange}
-              onAddRow={handleAddExpense}
-              onDeleteRow={handleRemoveExpense}
-              totals={expenseTotals}
-              employees={employees}
-            />
+            <h2 className="text-xl font-bold text-black mb-4">OTHER FEE DISTRIBUTION</h2>
+            <OtherFeeTable rows={otherFeeData} onUpdate={handleOtherFeeChange} onAddRow={handleAddOtherFee} onDeleteRow={handleRemoveOtherFee} totalFee={eventInfo.otherFee} employees={employees} />
           </div>
-
-          {/* PERFORMANCE REPORT */}
+          <div className="bg-white rounded p-6">
+            <h2 className="text-xl font-bold text-black mb-4">EXPENSES</h2>
+            <ExpenseTable expenses={expenseData} onUpdate={handleExpenseChange} onAddRow={handleAddExpense} onDeleteRow={handleRemoveExpense} totals={expenseTotals} employees={employees} />
+          </div>
           <div className="bg-white rounded p-6">
             <h2 className="text-xl font-bold text-black mb-4">PERFORMANCE REPORT</h2>
             <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm">
@@ -774,11 +788,7 @@ export default function SalesReportPage() {
                   {performanceRows.map((row, idx) => (
                     <tr key={idx} className={idx % 2 === 1 ? 'bg-gray-50' : 'bg-white'}>
                       <td className="px-4 py-2">
-                        <select
-                          value={row.department}
-                          onChange={e => handlePerformanceChange(idx, 'department', e.target.value)}
-                          className="w-full px-2 py-2 border border-gray-300 rounded text-sm uppercase bg-white"
-                        >
+                        <select value={row.department} onChange={e => handlePerformanceChange(idx, 'department', e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded text-sm uppercase bg-white">
                           <option value="">SELECT DEPARTMENT</option>
                           {departmentOptions.map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
@@ -786,12 +796,7 @@ export default function SalesReportPage() {
                         </select>
                       </td>
                       <td className="px-4 py-2">
-                        <select
-                          value={row.employee}
-                          onChange={e => handlePerformanceChange(idx, 'employee', e.target.value)}
-                          className="w-full px-2 py-2 border border-gray-300 rounded text-sm uppercase bg-white"
-                          disabled={!row.department}
-                        >
+                        <select value={row.employee} onChange={e => handlePerformanceChange(idx, 'employee', e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded text-sm uppercase bg-white" disabled={!row.department}>
                           <option value="">SELECT EMPLOYEE</option>
                           {getEmployeesByDepartment(row.department).map(emp => (
                             <option key={emp.id} value={emp.name}>{emp.name}</option>
@@ -799,131 +804,77 @@ export default function SalesReportPage() {
                         </select>
                       </td>
                       <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          value={row.position}
-                          onChange={e => handlePerformanceChange(idx, 'position', e.target.value)}
-                          className="w-full px-2 py-2 border border-gray-300 rounded text-sm uppercase text-center bg-white"
-                          placeholder="POSITION"
-                        />
+                        <input type="text" value={row.position} onChange={e => handlePerformanceChange(idx, 'position', e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded text-sm uppercase text-center bg-white" placeholder="POSITION" />
                       </td>
                       <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          value={row.report}
-                          onChange={e => handlePerformanceChange(idx, 'report', e.target.value)}
-                          className="w-full px-2 py-2 border border-gray-300 rounded text-sm uppercase text-center bg-white"
-                          placeholder="REPORT"
-                        />
+                        <input type="text" value={row.report} onChange={e => handlePerformanceChange(idx, 'report', e.target.value)} className="w-full px-2 py-2 border border-gray-300 rounded text-sm uppercase text-center bg-white" placeholder="REPORT" />
                       </td>
                       <td className="px-4 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={row.note}
-                          onChange={e => handlePerformanceChange(idx, 'note', e.target.checked)}
-                          className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
+                        <input type="checkbox" checked={row.note} onChange={e => handlePerformanceChange(idx, 'note', e.target.checked)} className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                       </td>
                       <td className="px-4 py-2 text-center">
-                        <button
-                          onClick={() => handleRemovePerformanceRow(idx)}
-                          className="text-red-600 hover:text-red-800 font-medium text-sm"
-                        >
-                          Delete
-                        </button>
+                        <button onClick={() => handleRemovePerformanceRow(idx)} className="text-red-600 hover:text-red-800 font-medium text-sm">Delete</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                <button
-                  onClick={handleAddPerformanceRow}
-                  className="bg-gray-900 text-white px-6 py-2 rounded font-semibold hover:bg-black transition text-sm shadow-md"
-                >
-                  + Add Performance Report
-                </button>
+                <button onClick={handleAddPerformanceRow} className="bg-gray-900 text-white px-6 py-2 rounded font-semibold hover:bg-black transition text-sm shadow-md">+ Add Performance Report</button>
               </div>
             </div>
           </div>
-
-          {/* EVENT SUMMARY - moved here below PERFORMANCE REPORT */}
           <div className="bg-white rounded p-6 mt-6">
             <h2 className="text-lg font-bold text-black mb-2 uppercase">EVENT SUMMARY</h2>
-            <textarea
-              className="w-full min-h-[80px] border border-gray-300 rounded p-3 text-base bg-gray-50 resize-none overflow-hidden"
-              placeholder="Write a summary of the event..."
-              value={eventSummary}
-              onChange={e => {
-                setEventSummary(e.target.value);
-                const ta = e.target;
-                ta.style.height = 'auto';
-                ta.style.height = ta.scrollHeight + 'px';
-              }}
-              style={{height: 'auto', maxHeight: '600px'}}
-              rows={3}
-            />
+            <textarea className="w-full min-h-[80px] border border-gray-300 rounded p-3 text-base bg-gray-50 resize-none overflow-hidden" placeholder="Write a summary of the event..." value={eventSummary} onChange={e => {
+              setEventSummary(e.target.value);
+              const ta = e.target;
+              ta.style.height = 'auto';
+              ta.style.height = ta.scrollHeight + 'px';
+            }} style={{height: 'auto', maxHeight: '600px'}} rows={3} />
           </div>
-              {/* Botón de subir reporte */}
-              <div className="flex justify-center mt-8">
-                <button
-                  onClick={handleSubmitClick}
-                  className="bg-black hover:bg-gray-900 text-white font-bold py-3 px-10 rounded shadow-md text-lg transition tracking-wider"
-                >
-                  SUBMIT REPORT
-                </button>
-              </div>
-
-              {/* Modal de seguridad */}
-              {showSecurityModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-10 backdrop-blur-sm flex items-center justify-center z-50">
-                  <div className="border border-black rounded-xl w-full max-w-xs mx-2 p-0 bg-white">
-                    <div className="flex flex-col items-center pt-6 pb-1 px-4">
-                      <h2 className="text-2xl font-black tracking-widest text-black mb-1 text-center" style={{letterSpacing:'0.18em'}}>KLIMROD CFO</h2>
-                      <span className="text-xs text-gray-400 font-semibold mb-2 tracking-widest text-center">SECURITY CODE</span>
-                    </div>
-                    <form onSubmit={e => { e.preventDefault(); handleSecuritySubmit(); }} className="flex flex-col items-center px-4 pb-6">
-                      <div className="w-full mb-6 flex justify-center">
-                        <div className="flex gap-4">
-                          {[0,1,2,3,4].map(i => (
-                            <span key={i} className="inline-block w-8 h-12 border-b-2 border-black text-3xl font-light text-center align-middle transition-colors duration-150" style={{color: securityPassword.length > i ? '#111' : '#bbb', background:'transparent', lineHeight:'3rem'}}>
-                              {securityPassword.length > i ? '•' : '_'}
-                            </span>
-                          ))}
-                        </div>
-                        <input
-                          type="password"
-                          value={securityPassword}
-                          onChange={e => {
-                            if (e.target.value.length <= 5) setSecurityPassword(e.target.value.replace(/[^0-9a-zA-Z]/g, ''));
-                          }}
-                          maxLength={5}
-                          className="absolute opacity-0 w-0 h-0"
-                          tabIndex={0}
-                          autoFocus
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="w-full py-2 mt-1 bg-black text-white text-base font-bold rounded-full tracking-widest transition-all hover:bg-gray-900 focus:outline-none"
-                        style={{letterSpacing:'0.15em'}}
-                      >
-                        SUBMIT REPORT
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowSecurityModal(false)}
-                        className="w-full py-2 mt-2 bg-transparent text-black text-sm font-semibold rounded-full border border-black tracking-widest hover:bg-gray-100 transition-all focus:outline-none"
-                        style={{letterSpacing:'0.12em'}}
-                      >
-                        CANCEL
-                      </button>
-                    </form>
-                  </div>
+          <div className="flex justify-center mt-8">
+            <button onClick={handleSubmitClick} className="bg-black hover:bg-gray-900 text-white font-bold py-3 px-10 rounded shadow-md text-lg transition tracking-wider">SUBMIT REPORT</button>
+          </div>
+          {showSecurityModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-10 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="border border-black rounded-xl w-full max-w-xs mx-2 p-0 bg-white">
+                <div className="flex flex-col items-center pt-6 pb-1 px-4">
+                  <h2 className="text-2xl font-black tracking-widest text-black mb-1 text-center" style={{letterSpacing:'0.18em'}}>KLIMROD CFO</h2>
+                  <span className="text-xs text-gray-400 font-semibold mb-2 tracking-widest text-center">SECURITY CODE</span>
                 </div>
-              )}
-            </div> {/* End w-full */}
-          </div>
-          </AuthenticatedLayout>
-        );
+                <form onSubmit={e => { e.preventDefault(); handleSecuritySubmit(); }} className="flex flex-col items-center px-4 pb-6">
+                  <div className="w-full mb-6 flex justify-center">
+                    <div className="flex gap-4 relative">
+                      {[0,1,2,3,4].map(i => (
+                        <span key={i} className="inline-block w-8 h-12 border-b-2 border-black text-3xl font-light text-center align-middle transition-colors duration-150 select-none" style={{color: securityPassword.length > i ? '#111' : '#bbb', background:'transparent', lineHeight:'3rem'}}>{securityPassword.length > i ? '•' : '_'}</span>
+                      ))}
+                      <input
+                        type="password"
+                        value={securityPassword}
+                        onChange={e => {
+                          if (e.target.value.length <= 5) setSecurityPassword(e.target.value.replace(/[^0-9a-zA-Z]/g, ''));
+                        }}
+                        maxLength={5}
+                        ref={securityInputRef}
+                        autoFocus
+                        aria-label="Security code input"
+                        className="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
+                        style={{zIndex: 2}}
+                        inputMode="text"
+                        pattern="[0-9a-zA-Z]*"
+                        tabIndex={0}
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full py-2 mt-1 bg-black text-white text-base font-bold rounded-full tracking-widest transition-all hover:bg-gray-900 focus:outline-none" style={{letterSpacing:'0.15em'}}>SUBMIT REPORT</button>
+                  <button type="button" onClick={() => setShowSecurityModal(false)} className="w-full py-2 mt-2 bg-transparent text-black text-sm font-semibold rounded-full border border-black tracking-widest hover:bg-gray-100 transition-all focus:outline-none" style={{letterSpacing:'0.12em'}}>CANCEL</button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </AuthenticatedLayout>
+  );
 }

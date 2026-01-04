@@ -34,10 +34,14 @@ export default function SommelierManagementPage() {
   return (
     <AuthenticatedLayout>
       <div className="max-w-7xl">
-        <h1 className="text-3xl font-bold text-black mb-2">SOMMELIER MANAGEMENT</h1>
-        {restaurantName && (
-          <p className="text-lg font-semibold text-gray-600 mb-4">{restaurantName}</p>
-        )}
+        <div className="pt-6 pb-2">
+          <h1 className="text-3xl font-bold text-black">SOMMELIER MANAGEMENT</h1>
+          {restaurantName && (
+            <div className="mt-1">
+              <span className="text-lg font-semibold text-gray-600">{restaurantName}</span>
+            </div>
+          )}
+        </div>
 
         {/* Tab Navigation */}
         <div className="grid grid-cols-3 gap-3 mb-6">
